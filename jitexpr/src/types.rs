@@ -70,14 +70,16 @@ impl Eq for SafeF64 {}
 impl Ord for SafeF64 {
     #[inline(always)]
     fn cmp(&self, other: &SafeF64) -> Ordering {
-        self.partial_cmp(&other).unwrap()
+        self.0
+            .partial_cmp(&other.0)
+            .expect("SafeF64 excludes NaN, so values are totally ordered")
     }
 }
 
 impl PartialOrd for SafeF64 {
     #[inline(always)]
     fn partial_cmp(&self, other: &SafeF64) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -370,7 +372,6 @@ impl<'a> From<VariablePrimitiveOpt> for VariableValue<'a> {
 #[cfg(test)]
 mod tests {
     use std::cmp::Ordering;
-    use std::collections::HashSet;
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 

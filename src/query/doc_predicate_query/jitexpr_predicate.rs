@@ -239,19 +239,19 @@ impl<'a> Drop for ClearOnDrop<'a> {
 impl SegmentDocPredicate for JitExprEvalState {
     fn eval(&mut self, doc_id: DocId) -> bool {
         // Input_values is just a buffer we share to avoid allocations
-        let mut inputs_vec = ClearOnDrop::wrap(&mut self.input_values);
+        let inputs_vec = ClearOnDrop::wrap(&mut self.input_values);
 
         fill_input_values(
             &self.columns_opt,
             &mut self.string_inputs,
-            &mut inputs_vec.0,
+            inputs_vec.0,
             doc_id,
         );
 
         // SAFETY: Columns follow compiled.inputs() and their types were checked
         // during setup. Each slot uses the matching union arm. String buffers
         // remain borrowed, and cannot be mutated, until this call finishes.
-        let eval_result: Option<bool> = unsafe { self.compiled.call(&inputs_vec.0).as_bool() };
+        let eval_result: Option<bool> = unsafe { self.compiled.call(inputs_vec.0).as_bool() };
 
         eval_result == Some(true)
     }
