@@ -1077,3 +1077,31 @@ fn test_delete_decrease_cardinality() {
     assert_eq!(cols[0].column_type(), ColumnType::I64);
     assert_eq!(cols[0].open().unwrap().get_cardinality(), Cardinality::Full);
 }
+
+// https://github.com/quickwit-oss/tantivy/issues/2436
+#[test]
+fn test_get_docids_for_value_range_on_u64_coerced_column() {
+    let mut columnar_writer = crate::ColumnarWriter::default();
+    // This column gets internally coerced to i64
+    columnar_writer.record_numerical(0, "full", 0u64);
+    let mut wrt: Vec<u8> = Vec::new();
+    columnar_writer.serialize(1, None, &mut wrt).unwrap();
+
+    let reader = crate::ColumnarReader::open(wrt).unwrap();
+    // Open the column as u64
+    let column = reader.read_columns("full").unwrap()[0]
+        .open()
+        .unwrap()
+        .coerce_numerical(crate::NumericalType::U64)
+        .unwrap();
+    let DynamicColumn::U64(column) = column else {
+        panic!();
+    };
+    let mut docids = Vec::new();
+    column.get_docids_for_value_range(0..=u64::MAX, 0..1, &mut docids);
+    assert_eq!(docids, vec![0]);
+
+    docids.clear();
+    column.get_docids_for_value_range(i64::MAX as u64 + 1..=u64::MAX, 0..1, &mut docids);
+    assert!(docids.is_empty());
+}

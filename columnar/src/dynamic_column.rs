@@ -1,4 +1,5 @@
 use std::net::Ipv6Addr;
+use std::ops::RangeInclusive;
 use std::{fmt, io};
 
 use common::file_slice::FileSlice;
@@ -210,6 +211,13 @@ impl StrictlyMonotonicFn<i64, u64> for MapI64ToU64 {
     #[inline(always)]
     fn inverse(&self, out: u64) -> i64 {
         out as i64
+    }
+    fn inverse_range(&self, range: RangeInclusive<u64>) -> Option<RangeInclusive<i64>> {
+        // Values above i64::MAX have no i64 counterpart.
+        let (start, end) = range.into_inner();
+        let start = i64::try_from(start).ok()?;
+        let end = i64::try_from(end).unwrap_or(i64::MAX);
+        Some(start..=end)
     }
 }
 

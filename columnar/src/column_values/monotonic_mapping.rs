@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::ops::RangeInclusive;
 
 use common::DateTime;
 
@@ -43,6 +44,13 @@ pub trait StrictlyMonotonicFn<External, Internal> {
     fn mapping(&self, inp: External) -> Internal;
     /// Inverse of `mapping`. Maps the value from Internal to External.
     fn inverse(&self, out: Internal) -> External;
+
+    /// Maps a range of Internal values to the range of External values that map into it.
+    /// Returns `None` if no External value maps into the range.
+    fn inverse_range(&self, range: RangeInclusive<Internal>) -> Option<RangeInclusive<External>> {
+        let (start, end) = range.into_inner();
+        Some(self.inverse(start)..=self.inverse(end))
+    }
 }
 
 /// Inverts a strictly monotonic mapping from `StrictlyMonotonicFn<A, B>` to

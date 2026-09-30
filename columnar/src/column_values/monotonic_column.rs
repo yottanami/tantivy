@@ -94,12 +94,11 @@ where
         doc_id_range: Range<u32>,
         positions: &mut Vec<u32>,
     ) {
-        self.from_column.get_row_ids_for_value_range(
-            self.monotonic_mapping.inverse(range.start().clone())
-                ..=self.monotonic_mapping.inverse(range.end().clone()),
-            doc_id_range,
-            positions,
-        )
+        let Some(range) = self.monotonic_mapping.inverse_range(range) else {
+            return;
+        };
+        self.from_column
+            .get_row_ids_for_value_range(range, doc_id_range, positions)
     }
 
     // We voluntarily do not implement get_range as it yields a regression,
