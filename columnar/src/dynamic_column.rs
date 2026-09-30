@@ -200,6 +200,13 @@ impl StrictlyMonotonicFn<u64, i64> for MapU64ToI64 {
     fn inverse(&self, out: i64) -> u64 {
         out as u64
     }
+    fn inverse_range(&self, range: RangeInclusive<i64>) -> Option<RangeInclusive<u64>> {
+        // Negative values have no u64 counterpart.
+        let (start, end) = range.into_inner();
+        let end = u64::try_from(end).ok()?;
+        let start = u64::try_from(start).unwrap_or(0);
+        Some(start..=end)
+    }
 }
 
 struct MapI64ToU64;

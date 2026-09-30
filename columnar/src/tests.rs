@@ -1105,3 +1105,36 @@ fn test_get_docids_for_value_range_on_u64_coerced_column() {
     column.get_docids_for_value_range(i64::MAX as u64 + 1..=u64::MAX, 0..1, &mut docids);
     assert!(docids.is_empty());
 }
+
+#[test]
+fn test_get_docids_for_value_range_on_i64_coerced_column() {
+    let mut columnar_writer = crate::ColumnarWriter::default();
+    // Force a u64 column, like tantivy's fast field writer does for u64 fields
+    columnar_writer.record_column_type("full", ColumnType::U64, false);
+    columnar_writer.record_numerical(0, "full", 0u64);
+    columnar_writer.record_numerical(1, "full", 7u64);
+    let mut wrt: Vec<u8> = Vec::new();
+    columnar_writer.serialize(2, None, &mut wrt).unwrap();
+
+    let reader = crate::ColumnarReader::open(wrt).unwrap();
+    // Open the column as i64
+    let column = reader.read_columns("full").unwrap()[0]
+        .open()
+        .unwrap()
+        .coerce_numerical(crate::NumericalType::I64)
+        .unwrap();
+    let DynamicColumn::I64(column) = column else {
+        panic!();
+    };
+    let mut docids = Vec::new();
+    column.get_docids_for_value_range(i64::MIN..=i64::MAX, 0..2, &mut docids);
+    assert_eq!(docids, vec![0, 1]);
+
+    docids.clear();
+    column.get_docids_for_value_range(-5..=10, 0..2, &mut docids);
+    assert_eq!(docids, vec![0, 1]);
+
+    docids.clear();
+    column.get_docids_for_value_range(-5..=-1, 0..2, &mut docids);
+    assert!(docids.is_empty());
+}
